@@ -11,7 +11,7 @@ CC = c++ -std=c++11
 NVCC = nvcc -std c++11
 CFLAGS = -fPIC -I$(TF_INC) -O2 -D_GLIBCXX_USE_CXX11_ABI=0
 LDFLAGS = -L$(CUDA_HOME)/lib64 -lcudart
-NVFLAGS = -DGOOGLE_CUDA=1 -x cu -Xcompiler -fPIC -I$(TF_INC) \
+NVFLAGS = -DGOOGLE_CUDA=1 -x cu -Xcompiler -fPIC -I$(TF_INC) -I/usr/local\
 					-expt-relaxed-constexpr -Wno-deprecated-gpu-targets -ftz=true
 
 
