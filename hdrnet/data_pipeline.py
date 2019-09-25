@@ -108,6 +108,7 @@ class DataPipeline(object):
     """Batch several samples together."""
 
     # Batch and shuffle
+    # 将队列中的图片打乱，再合并成batch
     if self.shuffle:
       samples = tf.train.shuffle_batch(
           sample,
@@ -138,9 +139,11 @@ class DataPipeline(object):
                          (tf.equal(angle, 3), lambda: tf.image.rot90(inout, k=3))],
                         lambda: inout)
 
+      # 将输入输出合并成一张图片
       inout.set_shape([None, None, nchan])
 
       with tf.name_scope('crop'):
+        # 得到图片的长、宽、通道数
         shape = tf.shape(inout)
         new_height = tf.to_int32(self.output_resolution[0])
         new_width = tf.to_int32(self.output_resolution[1])
@@ -148,6 +151,7 @@ class DataPipeline(object):
         width_ok = tf.assert_less_equal(new_width, shape[1])
         with tf.control_dependencies([height_ok, width_ok]):
           if self.random_crop:
+            # 随机裁剪图片
             inout = tf.random_crop(
                 inout, tf.stack([new_height, new_width, nchan]))
           else:
@@ -185,7 +189,7 @@ class ImageFilesDataPipeline(DataPipeline):
     if not check_dir(dirname):
       raise ValueError("Invalid data path.")
     with open(self.path, 'r') as fid:
-      flist = [l.strip() for l in fid.xreadlines()]
+      flist = [l.strip() for l in fid]
 
     if self.shuffle:
       random.shuffle(flist)
@@ -195,9 +199,10 @@ class ImageFilesDataPipeline(DataPipeline):
 
     self.nsamples = len(input_files)
 
+    # 将文件名队列映射到内存队列
     input_queue, output_queue = tf.train.slice_input_producer(
         [input_files, output_files], shuffle=self.shuffle,
-        seed=0123, num_epochs=self.num_epochs)
+        seed=123, num_epochs=self.num_epochs)
 
     if '16-bit' in magic.from_file(input_files[0]):
       input_dtype = tf.uint16
@@ -212,9 +217,11 @@ class ImageFilesDataPipeline(DataPipeline):
       output_wl = 255.0
       output_dtype = tf.uint8
 
+    # 延迟读出内存队列的内容
     input_file = tf.read_file(input_queue)
     output_file = tf.read_file(output_queue)
 
+    # 解码出内存队列的图片内容
     if os.path.splitext(input_files[0])[-1] == '.jpg': 
       im_input = tf.image.decode_jpeg(input_file, channels=3)
     else:
@@ -225,13 +232,14 @@ class ImageFilesDataPipeline(DataPipeline):
     else:
       im_output = tf.image.decode_png(output_file, dtype=output_dtype, channels=3)
 
-    # normalize input/output
+    # 对输入和输出的图片做归一化
     sample = {}
     with tf.name_scope('normalize_images'):
       im_input = tf.to_float(im_input)/input_wl
       im_output = tf.to_float(im_output)/output_wl
 
     inout = tf.concat([im_input, im_output], 2)
+    # 将图片随机裁剪成[512*512*6]，再缩放成[256*256]
     fullres, inout = self._augment_data(inout, 6)
 
     sample['lowres_input'] = inout[:, :, :3]

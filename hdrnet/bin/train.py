@@ -54,10 +54,10 @@ def main(args, model_params, data_params):
 
   tf.set_random_seed(1234)  # Make experiments repeatable
 
-  # Select an architecture
+  # 选择所使用的模型类
   mdl = getattr(models, args.model_name)
 
-  # Add model parameters to the graph (so they are saved to disk at checkpoint)
+  # 将命令行输入的和模型结构相关的参数存入到图中，以便保持到硬盘上的checkpoint
   for p in model_params:
     p_ = tf.convert_to_tensor(model_params[p], name=p)
     tf.add_to_collection('model_params', p_)
