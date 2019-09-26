@@ -21,6 +21,8 @@ import cv2
 import logging
 import numpy as np
 import os
+import sys
+sys.path.append(os.getcwd())
 import re
 import setproctitle
 import skimage
