@@ -43,6 +43,7 @@ def conv(inputs, num_outputs, kernel_size, stride=1, rate=1,
       stride=stride, padding='SAME',
       rate=rate,
       weights_initializer=w_initializer(),
+      weights_regularizer=tf.contrib.layers.l2_regularizer(1.0),
       biases_initializer=b_init,
       normalizer_fn=normalizer_fn,
       normalizer_params={
@@ -51,8 +52,8 @@ def conv(inputs, num_outputs, kernel_size, stride=1, rate=1,
           'beta':[tf.GraphKeys.BIASES],
           'moving_mean':[tf.GraphKeys.MOVING_AVERAGE_VARIABLES],
           'moving_variance':[tf.GraphKeys.MOVING_AVERAGE_VARIABLES]},
-        }, 
-      activation_fn=activation_fn, 
+        },
+      activation_fn=activation_fn,
       variables_collections={'weights':[tf.GraphKeys.WEIGHTS], 'biases':[tf.GraphKeys.BIASES]},
       outputs_collections=[tf.GraphKeys.ACTIVATIONS],
       scope=scope, reuse=reuse)
@@ -62,7 +63,7 @@ def conv(inputs, num_outputs, kernel_size, stride=1, rate=1,
 def fc(inputs, num_outputs,
     use_bias=True,
     batch_norm=False, is_training=False,
-    activation_fn=tf.nn.relu, 
+    activation_fn=tf.nn.relu,
     scope=None):
   if batch_norm:
     normalizer_fn = tf.contrib.layers.batch_norm
@@ -78,6 +79,7 @@ def fc(inputs, num_outputs,
       inputs=inputs,
       num_outputs=num_outputs,
       weights_initializer=w_initializer(),
+      weights_regularizer=tf.contrib.layers.l2_regularizer(1.0),
       biases_initializer=b_init,
       normalizer_fn=normalizer_fn,
       normalizer_params={
@@ -86,8 +88,8 @@ def fc(inputs, num_outputs,
           'beta':[tf.GraphKeys.BIASES],
           'moving_mean':[tf.GraphKeys.MOVING_AVERAGE_VARIABLES],
           'moving_variance':[tf.GraphKeys.MOVING_AVERAGE_VARIABLES]},
-        }, 
-      activation_fn=activation_fn, 
+        },
+      activation_fn=activation_fn,
       variables_collections={'weights':[tf.GraphKeys.WEIGHTS], 'biases':[tf.GraphKeys.BIASES]},
       scope=scope)
   return output
@@ -98,7 +100,6 @@ def fc(inputs, num_outputs,
 # pylint: disable=redefined-builtin
 def bilateral_slice(grid, guide, name=None):
   """Slices into a bilateral grid using the guide map.
-
   Args:
     grid: (Tensor) [batch_size, grid_h, grid_w, depth, n_outputs]
       grid to slice from.
@@ -124,7 +125,6 @@ def bilateral_slice(grid, guide, name=None):
 
 def bilateral_slice_apply(grid, guide, input_image, has_offset=True, name=None):
   """Slices into a bilateral grid using the guide map.
-
   Args:
     grid: (Tensor) [batch_size, grid_h, grid_w, depth, n_outputs]
       grid to slice from.
@@ -152,7 +152,6 @@ def bilateral_slice_apply(grid, guide, input_image, has_offset=True, name=None):
 # pylint: disable=redefined-builtin
 def apply(sliced, input_image, has_affine_term=True, name=None):
   """Applies a sliced affined model to the input image.
-
   Args:
     sliced: (Tensor) [batch_size, h, w, n_output, n_input+1] affine coefficients
     input_image: (Tensor) [batch_size, h, w, n_input] input data onto which to
