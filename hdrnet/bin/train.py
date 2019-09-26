@@ -19,6 +19,8 @@ import argparse
 import logging
 import numpy as np
 import os
+import sys
+sys.path.append(os.getcwd())
 import setproctitle
 import tensorflow as tf
 import time

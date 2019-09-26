@@ -10,11 +10,11 @@ LIB_DIR = lib
 
 CC = c++ -std=c++11
 NVCC = nvcc -std c++11
-CFLAGS = -fPIC -I$(TF_INC) -O2 -D_GLIBCXX_USE_CXX11_ABI=0
-LDFLAGS = -L$(CUDA_HOME)/lib64 -lcudart
-NVFLAGS = -DGOOGLE_CUDA=1 -x cu -Xcompiler -fPIC -I$(TF_INC) -I/usr/local\
-					-L$TF_LIB -ltensorflow_framework \
-					-expt-relaxed-constexpr -Wno-deprecated-gpu-targets -ftz=true
+CFLAGS = -fPIC -I$(TF_INC) -I$(CUDA_HOME)/.. -O2 -D_GLIBCXX_USE_CXX11_ABI=0
+LDFLAGS = -L$(CUDA_HOME)/lib64 -lcudart -L$(TF_LIB) -ltensorflow_framework
+NVFLAGS = -DGOOGLE_CUDA=1 -x cu -Xcompiler -fPIC -I$(TF_INC) -D_GLIBCXX_USE_CXX11_ABI=0 -I$(CUDA_HOME)/..\
+					-gencode=arch=compute_30,code=\"sm_30,compute_30\" \
+					-expt-relaxed-constexpr -Wno-deprecated-gpu-targets -ftz=true --ptxas-options=-v -lineinfo
 
 
 SRC = bilateral_slice.cc
