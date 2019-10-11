@@ -248,7 +248,7 @@ class ImageFilesDataPipeline(DataPipeline):
     sample['lowres_output'] = inout[:, :, 3:]
     sample['image_input'] = fullres[:, :, :3]
     sample['image_output'] = fullres[:, :, 3:]
-    sample['indeces'] = indices_queue
+    sample['indices'] = indices_queue
     return sample
 
 
