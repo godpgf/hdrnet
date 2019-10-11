@@ -143,7 +143,9 @@ def bilateral_slice_apply(grid, guide, input_image, has_offset=True, name=None):
       _, _, _, _, n_out, n_in = gridshape
       grid = tf.reshape(grid, tf.stack([gs[0], gs[1], gs[2], gs[3], gs[4]*gs[5]]))
       # grid = tf.concat(tf.unstack(grid, None, axis=5), 4)
-
+    # grid:[-1,16,16,8,12] [batch_size, grid_h, grid_w, depth, n_outputs]
+    # guide:[-1,512,512]
+    # input_image:[-1,512,512,3]
     sliced = hdrnet_ops.bilateral_slice_apply(grid, guide, input_image, has_offset=has_offset)
     return sliced
 # pylint: enable=redefined-builtin

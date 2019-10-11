@@ -91,11 +91,7 @@ def main(args, model_params, data_params):
   # Training graph
   with tf.name_scope('train'):
     with tf.variable_scope('inference'):
-      prediction = mdl.inference(
-          train_samples['lowres_input'], train_samples['image_input'],
-          model_params, is_training=True)
-    loss = metrics.l2_loss(train_samples['image_output'], prediction)
-    psnr = metrics.psnr(train_samples['image_output'], prediction)
+      loss, psnr = mdl.train_inference(metrics, train_samples['lowres_input'], train_samples['image_input'], train_samples['indices'], train_samples['lowres_output'], train_samples['image_output'], model_params)
 
   # Evaluation graph
   if args.eval_data_dir is not None:
@@ -104,7 +100,7 @@ def main(args, model_params, data_params):
         eval_prediction = mdl.inference(
             eval_samples['lowres_input'], eval_samples['image_input'],
             model_params, is_training=False)
-      eval_psnr = metrics.psnr(eval_samples['image_output'], prediction)
+      eval_psnr = metrics.psnr(eval_samples['image_output'], eval_prediction)
 
   # Optimizer
   global_step = tf.contrib.framework.get_or_create_global_step()
