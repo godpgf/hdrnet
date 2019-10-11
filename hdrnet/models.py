@@ -22,6 +22,7 @@ from hdrnet.layers import (conv, fc, bilateral_slice_apply)
 
 __all__ = [
   'HDRNetCurves',
+  'IlluminationNetCurves',
   'HDRNetPointwiseNNGuide',
   'HDRNetGaussianPyrNN',
 ]
@@ -250,6 +251,79 @@ class HDRNetCurves(object):
     with tf.device('/gpu:0'):
       out = bilateral_slice_apply(coeffs, guide, im, has_offset=True, name='slice')
     return out
+
+
+class IlluminationNetCurves(HDRNetCurves):
+
+  @classmethod
+  def inference(cls, lowres_input, fullres_input, params,
+                is_training=False):
+
+    with tf.variable_scope('coefficients'):
+      # 用低分辨率图得到双边系数图，lowres_input:[-1,256,256,3]->[-1,16,16,8,3,4]
+      bilateral_coeffs, white_balance = cls._coefficients(lowres_input, params, is_training)
+      tf.add_to_collection('bilateral_coefficients', bilateral_coeffs)
+
+    with tf.variable_scope('guide'):
+      # 得到灰度引导图[-1,512,512]
+      guide = cls._guide(fullres_input, params, is_training)
+      tf.add_to_collection('guide', guide)
+
+    with tf.variable_scope('output'):
+      # 将原图、引导图、系数图丢到bilateral_slice_apply
+      output = cls._output(
+          fullres_input, guide, bilateral_coeffs)
+      tf.add_to_collection('output', output)
+
+    return fullres_input * (1.0 + output * tf.reshape(white_balance, [-1, 1, 1, 3]))
+
+  @classmethod
+  def _global(cls, bs, gd, cm, spatial_bin, current_layer, params, is_training):
+    with tf.variable_scope('global'):
+      # 再经过两层卷积得到全局特征图
+      n_global_layers = int(np.log2(spatial_bin/4))  # 4x4 at the coarsest lvl
+
+      for i in range(2):
+        # [-1,16,16,64]->[-1,8,8,64]
+        # [-1,8,8,64]->[-1,4,4,64]
+        current_layer = conv(current_layer, 8*cm*gd, 3, stride=2,
+            batch_norm=params['batch_norm'], is_training=is_training,
+            scope="conv{}".format(i+1))
+      _, lh, lw, lc = current_layer.get_shape().as_list()
+      # 将全局特征图扁平化，[-1,4*4*64]
+      current_layer = tf.reshape(current_layer, [bs, lh*lw*lc])
+
+      # 全连接[-1,256]
+      current_layer = fc(current_layer, 32*cm*gd,
+                         batch_norm=params['batch_norm'], is_training=is_training,
+                         scope="fc1")
+      # [-1, 64]
+      current_layer = fc(current_layer, 16*cm*gd,
+                         batch_norm=params['batch_norm'], is_training=is_training,
+                         scope="fc2")
+      # don't normalize before fusion
+      current_layer = fc(current_layer, 8*cm*gd + 3, activation_fn=None, scope="fc3")
+      # [-1, 64], [-1, 3]
+      global_features, white_balance = tf.split(current_layer, [8*cm*gd, 3], 1)
+      return global_features, white_balance
+
+  @classmethod
+  def _coefficients(cls, input_tensor, params, is_training):
+    bs = input_tensor.get_shape().as_list()[0]
+    gd = params['luma_bins']
+    cm = params['channel_multiplier']
+    spatial_bin = params['spatial_bin']
+
+    # [-1,16,16,64]
+    splat_features = cls._splat(bs, gd, cm, spatial_bin, input_tensor, params, is_training=is_training)
+    # [-1, 64], [-1, 3]
+    global_features, white_balance = cls._global(bs, gd, cm, spatial_bin, splat_features, params, is_training=is_training)
+    # [-1, 16, 16, 64]
+    grid_features = cls._grid(bs, gd, cm, spatial_bin, splat_features, params, is_training=is_training)
+    # [-1, 16, 16, 64]
+    fusion = cls._fusion(bs, gd, cm, grid_features, global_features)
+    # [-1,16,16,8,3,4]
+    return cls._prediction(bs, gd, cm, spatial_bin, fusion), white_balance
 
 
 class HDRNetPointwiseNNGuide(HDRNetCurves):

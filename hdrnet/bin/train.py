@@ -232,7 +232,7 @@ if __name__ == '__main__':
 
   # Model parameters
   model_grp = parser.add_argument_group('model_params')
-  model_grp.add_argument('--model_name', default=models.__all__[0], type=str, help='classname of the model to use.', choices=models.__all__)
+  model_grp.add_argument('--model_name', default=models.__all__[1], type=str, help='classname of the model to use.', choices=models.__all__)
   model_grp.add_argument('--data_pipeline', default='ImageFilesDataPipeline', help='classname of the data pipeline to use.', choices=dp.__all__)
   model_grp.add_argument('--net_input_size', default=256, type=int, help="size of the network's lowres image input.")
   model_grp.add_argument('--output_resolution', default=[512, 512], type=int, nargs=2, help='resolution of the output image.')
