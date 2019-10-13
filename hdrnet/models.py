@@ -104,7 +104,7 @@ class HDRNetCurves(object):
         current_layer = conv(current_layer, 8*cm*gd, 3, stride=2,
             batch_norm=params['batch_norm'], is_training=is_training,
             scope="conv{}".format(i+1))
-        for j in range(1):
+        for j in range(0):
           current_layer = conv(current_layer, 8*cm*gd, 3, stride=1, batch_norm=params['batch_norm'], is_training=is_training, scope="conv{}_{}".format(i+1, j+1))
       _, lh, lw, lc = current_layer.get_shape().as_list()
       # 将全局特征图扁平化，[-1,4*4*64]
@@ -135,7 +135,7 @@ class HDRNetCurves(object):
                            is_training=is_training,
                            scope='conv1')
       # don't normalize before fusion
-      for i in range(2):
+      for i in range(1):
         current_layer = conv(current_layer, 8*cm*gd, 3, activation_fn=None,
                                use_bias=False, scope='conv2_{}'.format(i+1))
       # [-1, 16, 16, 64]
