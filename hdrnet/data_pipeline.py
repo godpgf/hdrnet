@@ -196,14 +196,12 @@ class ImageFilesDataPipeline(DataPipeline):
 
     input_files = [os.path.join(dirname, 'input', f) for f in flist]
     output_files = [os.path.join(dirname, 'output', f) for f in flist]
-    input_indices = [i for i in range(len(input_files))]
-
 
     self.nsamples = len(input_files)
 
     # 将文件名队列映射到内存队列
-    input_queue, output_queue, indices_queue = tf.train.slice_input_producer(
-        [input_files, output_files, input_indices], shuffle=self.shuffle,
+    input_queue, output_queue = tf.train.slice_input_producer(
+        [input_files, output_files], shuffle=self.shuffle,
         seed=123, num_epochs=self.num_epochs)
 
     if '16-bit' in magic.from_file(input_files[0]):
@@ -248,84 +246,6 @@ class ImageFilesDataPipeline(DataPipeline):
     sample['lowres_output'] = inout[:, :, 3:]
     sample['image_input'] = fullres[:, :, :3]
     sample['image_output'] = fullres[:, :, 3:]
-    sample['indices'] = indices_queue
-    return sample
-
-
-class IlluminationFilesDataPipeline(DataPipeline):
-  """Pipeline to process pairs of images from a list of image files.
-
-  Assumes path contains:
-    - a file named 'filelist.txt' listing the image names.
-    - a subfolder 'low'
-    - a subfolder 'high'
-  """
-
-  def _produce_one_sample(self):
-    dirname = os.path.dirname(self.path)
-    if not check_dir(dirname):
-      raise ValueError("Invalid data path.")
-    with open(self.path, 'r') as fid:
-      flist = [l.strip() for l in fid]
-
-    if self.shuffle:
-      random.shuffle(flist)
-
-    # 样本中包括亮到亮的，这样就可以区分不该增强的样本
-    input_files = [os.path.join(dirname, 'low', f) for f in flist] + [os.path.join(dirname, 'high', f) for f in flist]
-    output_files = [os.path.join(dirname, 'high', f) for f in flist] * 2
-    input_indices = [i for i in range(len(input_files))]
-
-    self.nsamples = len(input_files)
-
-    # 将文件名队列映射到内存队列
-    input_queue, output_queue, indices_queue = tf.train.slice_input_producer(
-      [input_files, output_files, input_indices], shuffle=self.shuffle,
-      seed=123, num_epochs=self.num_epochs)
-
-    if '16-bit' in magic.from_file(input_files[0]):
-      input_dtype = tf.uint16
-      input_wl = 65535.0
-    else:
-      input_wl = 255.0
-      input_dtype = tf.uint8
-    if '16-bit' in magic.from_file(output_files[0]):
-      output_dtype = tf.uint16
-      output_wl = 65535.0
-    else:
-      output_wl = 255.0
-      output_dtype = tf.uint8
-
-    # 延迟读出内存队列的内容
-    input_file = tf.read_file(input_queue)
-    output_file = tf.read_file(output_queue)
-
-    # 解码出内存队列的图片内容
-    if os.path.splitext(input_files[0])[-1] == '.jpg':
-      im_input = tf.image.decode_jpeg(input_file, channels=3)
-    else:
-      im_input = tf.image.decode_png(input_file, dtype=input_dtype, channels=3)
-
-    if os.path.splitext(output_files[0])[-1] == '.jpg':
-      im_output = tf.image.decode_jpeg(output_file, channels=3)
-    else:
-      im_output = tf.image.decode_png(output_file, dtype=output_dtype, channels=3)
-
-    # 对输入和输出的图片做归一化
-    sample = {}
-    with tf.name_scope('normalize_images'):
-      im_input = tf.to_float(im_input) / input_wl
-      im_output = tf.to_float(im_output) / output_wl
-
-    inout = tf.concat([im_input, im_output], 2)
-    # 将图片随机裁剪成[512*512*6]，再缩放成[256*256]
-    fullres, inout = self._augment_data(inout, 6)
-
-    sample['lowres_input'] = inout[:, :, :3]
-    sample['lowres_output'] = inout[:, :, 3:]
-    sample['image_input'] = fullres[:, :, :3]
-    sample['image_output'] = fullres[:, :, 3:]
-    sample['indeces'] = indices_queue
     return sample
 
 
