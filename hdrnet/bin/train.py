@@ -91,7 +91,11 @@ def main(args, model_params, data_params):
   # Training graph
   with tf.name_scope('train'):
     with tf.variable_scope('inference'):
-      loss, psnr = mdl.train_inference(metrics, train_samples['lowres_input'], train_samples['image_input'], train_samples['indices'], train_samples['lowres_output'], train_samples['image_output'], model_params)
+      prediction = mdl.inference(
+          train_samples['lowres_input'], train_samples['image_input'],
+          model_params, is_training=True)
+    loss = metrics.l2_loss(train_samples['image_output'], prediction)
+    psnr = metrics.psnr(train_samples['image_output'], prediction)
 
   # Evaluation graph
   if args.eval_data_dir is not None:
