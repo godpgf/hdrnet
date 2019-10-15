@@ -137,7 +137,7 @@ class HDRNetCurves(object):
       # don't normalize before fusion
       for i in range(1):
         current_layer = conv(current_layer, 8*cm*gd, 3, activation_fn=None,
-                                use_bias=False, scope='conv%d' % (i+1))
+                                use_bias=False, scope='conv%d' % (i+2))
       # [-1, 16, 16, 64]
       grid_features = current_layer
     # -----------------------------------------------------------------------
